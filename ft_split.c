@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_split.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: maabboud <maabboud@learner.42.tech>        +#+  +:+       +#+        */
+/*   By: marc <marc@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/11/04 16:45:54 by maabboud          #+#    #+#             */
-/*   Updated: 2026/11/04 17:03:33 by maabboud         ###   ########.fr       */
+/*   Updated: 2026/11/05 18:43:48 by marc             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "libft.h"
@@ -27,6 +27,8 @@ static int	ft_countwords(char const *str, char c)
 	int	i;
 	int	count;
 
+	i = 0;
+	count = 0;
 	while (str[i])
 	{
 		if (str[i] == c)
@@ -85,7 +87,10 @@ char	**ft_split(char const *s, char c)
 	{
 		split[x] = ft_copyword(s, &i, c);
 		if (!split[x])
+		{
+			split[x] = NULL;
 			return (ft_error(split));
+		}
 		x++;
 	}
 	split[x] = 0;

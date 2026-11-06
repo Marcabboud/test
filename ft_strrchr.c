@@ -24,7 +24,5 @@ char	*ft_strrchr(const char *str, int c)
 			return ((char *)&str[i]);
 		i--;
 	}
-	if (!a)
-		return ((char *)&str[i]);
 	return (0);
 }
