@@ -1,4 +1,4 @@
-/* Standalone Libft Part 1 + Part 2 test driver. NOT for submission. */
+/* Standalone Libft v1.3 Part 1 + Part 2 + Part 3 tester. NOT for submission. */
 #include "libft.h"
 #include <stdio.h>
 #include <string.h>
@@ -212,8 +212,8 @@ static void test_alloc_and_atoi(void)
     CHECK("ft_atoi", "leading zero", ft_atoi("00013") == 13);
     p = ft_strdup("some words");
     CHECK("ft_strdup", "contents", equal_string(p, "some words"));
-    CHECK("ft_strdup", "independent", p && strcmp(p, "some words") == 0);
-	free(p);
+    CHECK("ft_strdup", "copy contents", p && strcmp(p, "some words") == 0);
+    free(p);
     p = ft_strdup("");
     CHECK("ft_strdup", "empty", equal_string(p, ""));
     free(p);
@@ -371,6 +371,305 @@ static void test_fd_output(void)
         && memcmp(received, expected, used) == 0);
 }
 
+/* Linked-list tests for Libft v1.3. Included in main_libft_43_tests.c. */
+static int g_del_calls;
+static int g_iter_calls;
+static int g_map_calls;
+
+static void counted_free(void *ptr)
+{
+    g_del_calls++;
+    free(ptr);
+}
+
+static void increment_int(void *ptr)
+{
+    g_iter_calls++;
+    if (ptr)
+        (*(int *)ptr)++;
+}
+
+static void *double_int(void *ptr)
+{
+    int *out;
+
+    g_map_calls++;
+    if (!ptr)
+        return NULL;
+    out = malloc(sizeof(*out));
+    if (out)
+        *out = *(int *)ptr * 2;
+    return out;
+}
+
+static void *null_transform(void *ptr)
+{
+    (void)ptr;
+    g_map_calls++;
+    return NULL;
+}
+
+static t_list *make_int_node(int value)
+{
+    int *ptr;
+    t_list *node;
+
+    ptr = malloc(sizeof(*ptr));
+    if (!ptr)
+        return NULL;
+    *ptr = value;
+    node = ft_lstnew(ptr);
+    if (!node)
+        free(ptr);
+    return node;
+}
+
+static void test_lstnew(void)
+{
+    int val = 42;
+    t_list *node;
+
+    node = ft_lstnew(&val);
+    CHECK("ft_lstnew", "node allocated", node != NULL);
+    if (node)
+    {
+        CHECK("ft_lstnew", "content pointer unchanged", node->content == &val);
+        CHECK("ft_lstnew", "next initialized NULL", node->next == NULL);
+        free(node);
+    }
+    node = ft_lstnew(NULL);
+    CHECK("ft_lstnew", "NULL content allowed", node != NULL);
+    if (node)
+    {
+        CHECK("ft_lstnew", "NULL content stored", node->content == NULL);
+        CHECK("ft_lstnew", "NULL content next NULL", node->next == NULL);
+        free(node);
+    }
+}
+
+static void test_lstadd_front(void)
+{
+    t_list *head = NULL;
+    t_list *a = ft_lstnew("A");
+    t_list *b = ft_lstnew("B");
+
+    if (!a || !b)
+    {
+        CHECK("ft_lstadd_front", "fixture allocation", 0);
+        free(a);
+        free(b);
+        return;
+    }
+    ft_lstadd_front(&head, a);
+    CHECK("ft_lstadd_front", "empty list head", head == a);
+    CHECK("ft_lstadd_front", "empty list terminator", a->next == NULL);
+    ft_lstadd_front(&head, b);
+    CHECK("ft_lstadd_front", "new head", head == b);
+    CHECK("ft_lstadd_front", "old head preserved", b->next == a);
+    CHECK("ft_lstadd_front", "tail unchanged", a->next == NULL);
+    ft_lstadd_front(&head, NULL);
+    CHECK("ft_lstadd_front", "NULL new no-op", head == b && b->next == a);
+    ft_lstadd_front(NULL, NULL);
+    free(b);
+    free(a);
+}
+
+static void test_lstsize_last(void)
+{
+    t_list *a = ft_lstnew(NULL);
+    t_list *b = ft_lstnew(NULL);
+    t_list *c = ft_lstnew(NULL);
+
+    CHECK("ft_lstsize", "empty", ft_lstsize(NULL) == 0);
+    CHECK("ft_lstlast", "empty", ft_lstlast(NULL) == NULL);
+    if (!a || !b || !c)
+    {
+        CHECK("list fixture", "allocation", 0);
+        free(a); free(b); free(c);
+        return;
+    }
+    CHECK("ft_lstsize", "one", ft_lstsize(a) == 1);
+    CHECK("ft_lstlast", "one", ft_lstlast(a) == a);
+    a->next = b;
+    b->next = c;
+    CHECK("ft_lstsize", "three", ft_lstsize(a) == 3);
+    CHECK("ft_lstlast", "three returns C", ft_lstlast(a) == c);
+    CHECK("ft_lstsize", "does not change links", a->next == b && b->next == c);
+    free(c); free(b); free(a);
+}
+
+static void test_lstadd_back(void)
+{
+    t_list *head = NULL;
+    t_list *a = ft_lstnew("A");
+    t_list *b = ft_lstnew("B");
+    t_list *c = ft_lstnew("C");
+
+    if (!a || !b || !c)
+    {
+        CHECK("ft_lstadd_back", "fixture allocation", 0);
+        free(a); free(b); free(c);
+        return;
+    }
+    ft_lstadd_back(&head, a);
+    CHECK("ft_lstadd_back", "empty -> head", head == a);
+    ft_lstadd_back(&head, b);
+    ft_lstadd_back(&head, c);
+    CHECK("ft_lstadd_back", "head retained", head == a);
+    CHECK("ft_lstadd_back", "correct order", a->next == b && b->next == c);
+    CHECK("ft_lstadd_back", "last NULL", c->next == NULL);
+    ft_lstadd_back(&head, NULL);
+    CHECK("ft_lstadd_back", "NULL new no-op", c->next == NULL);
+    ft_lstadd_back(NULL, NULL);
+    free(c); free(b); free(a);
+}
+
+static void test_lstdelone(void)
+{
+    t_list *a = make_int_node(7);
+    t_list *b = make_int_node(8);
+
+    if (!a || !b)
+    {
+        CHECK("ft_lstdelone", "fixture allocation", 0);
+        if (a) ft_lstdelone(a, free);
+        if (b) ft_lstdelone(b, free);
+        return;
+    }
+    a->next = b;
+    g_del_calls = 0;
+    ft_lstdelone(a, counted_free);
+    CHECK("ft_lstdelone", "deletes content once", g_del_calls == 1);
+    CHECK("ft_lstdelone", "does not delete successor", b->content != NULL && *(int *)b->content == 8);
+    CHECK("ft_lstdelone", "successor still terminal", b->next == NULL);
+    ft_lstdelone(b, counted_free);
+    CHECK("ft_lstdelone", "second node deleted", g_del_calls == 2);
+    ft_lstdelone(NULL, counted_free);
+    CHECK("ft_lstdelone", "NULL node no callback", g_del_calls == 2);
+}
+
+static void test_lstclear(void)
+{
+    t_list *head = NULL;
+    t_list *a;
+    t_list *b;
+    t_list *c;
+
+    g_del_calls = 0;
+    ft_lstclear(&head, counted_free);
+    CHECK("ft_lstclear", "empty list stays NULL", head == NULL);
+    CHECK("ft_lstclear", "empty no delete", g_del_calls == 0);
+    a = make_int_node(1);
+    b = make_int_node(2);
+    c = make_int_node(3);
+    if (!a || !b || !c)
+    {
+        CHECK("ft_lstclear", "fixture allocation", 0);
+        if (a) ft_lstdelone(a, free);
+        if (b) ft_lstdelone(b, free);
+        if (c) ft_lstdelone(c, free);
+        return;
+    }
+    head = a;
+    a->next = b;
+    b->next = c;
+    ft_lstclear(&head, counted_free);
+    CHECK("ft_lstclear", "sets caller head NULL", head == NULL);
+    CHECK("ft_lstclear", "deletes exactly 3 contents", g_del_calls == 3);
+    ft_lstclear(&head, counted_free);
+    CHECK("ft_lstclear", "second clear safe", g_del_calls == 3);
+    ft_lstclear(NULL, counted_free);
+}
+
+static void test_lstiter(void)
+{
+    t_list *a = make_int_node(10);
+    t_list *b = make_int_node(20);
+    t_list *c = make_int_node(30);
+
+    if (!a || !b || !c)
+    {
+        CHECK("ft_lstiter", "fixture allocation", 0);
+        if (a) ft_lstdelone(a, free);
+        if (b) ft_lstdelone(b, free);
+        if (c) ft_lstdelone(c, free);
+        return;
+    }
+    a->next = b;
+    b->next = c;
+    g_iter_calls = 0;
+    ft_lstiter(a, increment_int);
+    CHECK("ft_lstiter", "visits three nodes", g_iter_calls == 3);
+    CHECK("ft_lstiter", "mutates each content", *(int *)a->content == 11
+        && *(int *)b->content == 21 && *(int *)c->content == 31);
+    CHECK("ft_lstiter", "links unchanged", a->next == b && b->next == c);
+    ft_lstiter(NULL, increment_int);
+    CHECK("ft_lstiter", "empty does not invoke callback", g_iter_calls == 3);
+    ft_lstiter(a, NULL);
+    ft_lstclear(&a, free);
+}
+
+static void test_lstmap(void)
+{
+    t_list *a = make_int_node(2);
+    t_list *b = make_int_node(-3);
+    t_list *c = make_int_node(0);
+    t_list *mapped;
+    t_list *cur;
+    int expected[3] = {4, -6, 0};
+    int i;
+
+    g_map_calls = 0;
+    mapped = ft_lstmap(NULL, double_int, free);
+    CHECK("ft_lstmap", "empty input -> NULL", mapped == NULL);
+    CHECK("ft_lstmap", "empty input no callback", g_map_calls == 0);
+    if (!a || !b || !c)
+    {
+        CHECK("ft_lstmap", "fixture allocation", 0);
+        if (a) ft_lstdelone(a, free);
+        if (b) ft_lstdelone(b, free);
+        if (c) ft_lstdelone(c, free);
+        return;
+    }
+    a->next = b;
+    b->next = c;
+    mapped = ft_lstmap(a, double_int, free);
+    CHECK("ft_lstmap", "returns non-NULL", mapped != NULL);
+    CHECK("ft_lstmap", "callback three times", g_map_calls == 3);
+    if (mapped)
+    {
+        CHECK("ft_lstmap", "three mapped nodes", ft_lstsize(mapped) == 3);
+        cur = mapped;
+        i = 0;
+        while (cur && i < 3)
+        {
+            CHECK("ft_lstmap", "each mapped integer", cur->content != NULL
+                && *(int *)cur->content == expected[i]);
+            CHECK("ft_lstmap", "distinct nodes", cur != a && cur != b && cur != c);
+            cur = cur->next;
+            i++;
+        }
+        CHECK("ft_lstmap", "original data intact", *(int *)a->content == 2
+            && *(int *)b->content == -3 && *(int *)c->content == 0);
+        CHECK("ft_lstmap", "original links intact", a->next == b && b->next == c);
+        CHECK("ft_lstmap", "distinct content allocations", mapped->content != a->content);
+        ft_lstclear(&mapped, free);
+        CHECK("ft_lstmap", "mapped clear NULLs head", mapped == NULL);
+    }
+    g_map_calls = 0;
+    mapped = ft_lstmap(a, null_transform, free);
+    CHECK("ft_lstmap", "NULL transformed content allowed", mapped != NULL);
+    if (mapped)
+    {
+        CHECK("ft_lstmap", "NULL transformed nodes count", ft_lstsize(mapped) == 3);
+        CHECK("ft_lstmap", "NULL transformed contents", mapped->content == NULL
+            && mapped->next->content == NULL && mapped->next->next->content == NULL);
+        ft_lstclear(&mapped, free);
+    }
+    CHECK("ft_lstmap", "NULL transformed callback three times", g_map_calls == 3);
+    ft_lstclear(&a, free);
+}
+
 int main(void)
 {
     test_classification();
@@ -381,8 +680,17 @@ int main(void)
     test_part2_strings();
     test_callbacks();
     test_fd_output();
+    test_lstnew();
+    test_lstadd_front();
+    test_lstsize_last();
+    test_lstadd_back();
+    test_lstdelone();
+    test_lstclear();
+    test_lstiter();
+    test_lstmap();
     printf("\nRESULT: %d passed, %d failed\n", g_pass, g_fail);
     if (g_fail)
         return 1;
     return 0;
 }
+

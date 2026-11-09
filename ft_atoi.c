@@ -23,7 +23,7 @@ static int	ft_iswhitespace(int c)
 
 int	ft_atoi(const char *str)
 {
-	int	res;
+	long	res;
 	int	sign;
 	int	i;
 
